@@ -2,19 +2,11 @@ use twitch_irc::login::StaticLoginCredentials;
 use twitch_irc::ClientConfig;
 use twitch_irc::TwitchIRCClient;
 use twitch_irc::SecureTCPTransport;
-//use std::env;
 use dotenv;
+use std::fmt;
+use twitch_irc::message::{IRCMessage, ServerMessage};
+use std::convert::TryFrom;
 
-//pub struct CredentialsPair{//hk -> oauth token(OAuth access token, without leading oauth: prefix.)
-
-/* nao sei se vou usar ainda
-
-pub struct ClientConfig<L:LoginCredentials>{
-    pub login_credentials: L,
-}
-*/
-
-//dotenv::from_filename("enviroment.env").ok();
 
 #[tokio::main]
 pub async fn main() {
@@ -31,14 +23,37 @@ pub async fn main() {
         TwitchIRCClient::<SecureTCPTransport, StaticLoginCredentials>::new(config);
     // first thing you should do: start consuming incoming messages,
     // otherwise they will back up.
+
+    client.join("hk________".to_owned());
+
+    
     let join_handle = tokio::spawn(async move {
         while let Some(message) = incoming_messages.recv().await {
-            println!("Received message: {:?}", message);
+//            println!("Received message: {:?}", message:PrivmsgMessage);
+//
+   //           if PrivmsgMessage::message_text == "!ping" {
+    //            client.say("hk________".to_owned(), "hello".to_owned()).await.unwrap();
+      //      }
+            let irc_message = IRCMessage::parse(":tmi.twitch.tv PING").unwrap();
+            let server_message = ServerMessage::try_from(irc_message).unwrap();
+            
+            match server_message {
+                //trata o PING da api da twitch
+                ServerMessage::Ping{ .. } => println!("Got pinged"),
+                rest => {
+                    let irc_message = IRCMessage::from(rest);
+                    if irc_message.command == "!hello"{
+                        client.say("hk________".to_owned(), "Hello world!".to_owned()).await.unwrap();
+                    }
+                },
+            }
         }
     });
 
+
+
     // join a channel
-    client.join("hk________".to_owned());
+//    client.join("hk________".to_owned());
 
     // keep the tokio executor alive.
     // If you return instead of waiting the background task will exit.
